@@ -16,6 +16,7 @@ import NewsTimeline from './NewsTimeline';
 import ExplanationCard from './ExplanationCard';
 import ScoreCharts from './ScoreCharts';
 import ReportActions from './ReportActions';
+import TradingViewWidget from './TradingViewWidget';
 import { useTheme } from '../hooks/useTheme';
 
 export default function AnalysisDashboard({ data }) {
@@ -67,6 +68,18 @@ export default function AnalysisDashboard({ data }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <CompanySummary data={data} />
         <ProsCons pros={data.pros} cons={data.cons} />
+      </div>
+
+      {/* Real-time TradingView Chart */}
+      <div className="mb-6 glass-card p-6">
+        <h3
+          className={`text-lg font-semibold mb-4 ${
+            theme === 'dark' ? 'text-white' : 'text-gray-900'
+          }`}
+        >
+          📈 Real-Time Market Chart ({data.ticker})
+        </h3>
+        <TradingViewWidget symbol={data.ticker} />
       </div>
 
       {/* Charts */}

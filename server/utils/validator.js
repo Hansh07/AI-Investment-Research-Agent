@@ -35,6 +35,7 @@ export function validateCompanyInput(company) {
 export function validateAnalysisOutput(data) {
   const requiredFields = [
     'company',
+    'ticker',
     'recommendation',
     'overallScore',
     'confidence',
@@ -53,6 +54,7 @@ export function validateAnalysisOutput(data) {
 
   const defaults = {
     company: 'Unknown',
+    ticker: 'AAPL',
     recommendation: 'PASS',
     overallScore: 50,
     confidence: 50,

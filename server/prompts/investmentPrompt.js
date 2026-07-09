@@ -39,6 +39,7 @@ You MUST respond with VALID JSON ONLY. No markdown, no code blocks, no extra tex
 REQUIRED JSON FORMAT:
 {
   "company": "Company Name",
+  "ticker": "STOCK_TICKER_SYMBOL (e.g. AAPL, TSLA, MSFT)",
   "recommendation": "INVEST or PASS",
   "overallScore": 0-100,
   "confidence": 0-100,

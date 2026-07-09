@@ -30,7 +30,7 @@ export function generatePDFReport(data) {
   // ── Company Name ────────────────────────────
   doc.setFontSize(20);
   doc.setTextColor(30, 30, 30);
-  doc.text(data.company, pageWidth / 2, y, { align: 'center' });
+  doc.text(`${data.company} (${data.ticker})`, pageWidth / 2, y, { align: 'center' });
   y += 12;
 
   // ── Recommendation ──────────────────────────
