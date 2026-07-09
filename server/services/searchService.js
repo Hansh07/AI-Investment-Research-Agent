@@ -20,10 +20,10 @@ import { TavilySearchResults } from '@langchain/community/tools/tavily_search';
  * @returns {string} - Combined search results as formatted text
  */
 export async function searchCompany(company) {
-  // Initialize the Tavily search tool
+  // Initialize the Tavily search tool (reduced to 2 results to stay within LLM rate limits)
   const searchTool = new TavilySearchResults({
     apiKey: process.env.TAVILY_API_KEY,
-    maxResults: 5,
+    maxResults: 2,
   });
 
   // Define search queries for different aspects of the company
@@ -60,13 +60,15 @@ export async function searchCompany(company) {
       if (Array.isArray(parsed)) {
         parsed.forEach((item) => {
           formattedResults += `\nSource: ${item.url || 'N/A'}\n`;
-          formattedResults += `${item.content || 'No content available'}\n`;
+          // Limit length of individual search snippets to prevent exceeding TPM limit
+          const snippet = item.content || 'No content available';
+          formattedResults += `${snippet.slice(0, 600)}\n`;
         });
       } else {
-        formattedResults += `${String(result)}\n`;
+        formattedResults += `${String(result).slice(0, 600)}\n`;
       }
     } catch {
-      formattedResults += `${String(result)}\n`;
+      formattedResults += `${String(result).slice(0, 600)}\n`;
     }
   });
 
