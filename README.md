@@ -38,7 +38,68 @@ InvestIQ AI is a full-stack web application that takes a **company name** as inp
 
 ---
 
-## 🏗️ Architecture
+## 🚀 How to Run It
+
+### Prerequisites
+- **Node.js** v18 or higher
+- **npm** v9 or higher
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Hansh07/AI-Investment-Research-Agent.git
+cd AI-Investment-Research-Agent
+```
+
+### 2. Set Up Environment Variables
+Create a `.env` file inside the `server/` directory:
+```bash
+cp .env.example server/.env
+```
+
+Edit `server/.env` and add your API keys:
+```
+GROQ_API_KEY=your_groq_api_key_here
+TAVILY_API_KEY=your_tavily_api_key_here
+PORT=5000
+```
+
+**Where to get API keys:**
+- **Groq**: Sign up at [console.groq.com](https://console.groq.com) (free tier available)
+- **Tavily**: Sign up at [tavily.com](https://tavily.com) (free tier: 1000 searches/month)
+
+### 3. Install Dependencies
+```bash
+# Install backend dependencies
+cd server
+npm install --legacy-peer-deps
+
+# Install frontend dependencies
+cd ../client
+npm install
+```
+
+### 4. Run the Application
+Open two terminal windows:
+
+**Terminal 1 — Backend:**
+```bash
+cd server
+npm run dev
+```
+
+**Terminal 2 — Frontend:**
+```bash
+cd client
+npm run dev
+```
+
+The app will be available at:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:5000
+
+---
+
+## 🧠 How It Works (Approach & Architecture)
 
 ```
 User Input (Company Name)
@@ -83,336 +144,112 @@ User Input (Company Name)
 └─────────────────────────────────────────┘
 ```
 
+The application uses a modular service-oriented architecture:
+
+1. **Client-Side Requests**: The user inputs a company name. The React application triggers a multi-step loading experience while sending an asynchronous POST request to the Express backend.
+2. **Real-time Research**: The backend's `searchService` uses **Tavily Search API** to fetch the latest company information. It executes **three concurrent searches** to gather separate details for financial performance, recent news/developments, and market position.
+3. **Structured Context Injection**: The raw results are compiled into formatted text context.
+4. **LangChain LLM Chain**: We construct a LangChain pipeline using a customized `SystemMessage` containing the persona, instructions, and target output schema, followed by a `HumanMessage` with the search context. The chain sends the messages to Groq's high-speed inference API running `llama-3.3-70b-versatile`.
+5. **Robust Parsing and Sanitization**: The response is captured, JSON content is extracted, and it passes through a validation layer that clamps scores to `[0, 100]`, normalizes recommendations to `[INVEST, PASS]`, and supplies fallback values for missing keys to ensure absolute frontend stability.
+
 ---
 
-## 🛠️ Tech Stack
+## 🔑 Key Decisions & Trade-offs
+
+During development, we made several conscious engineering choices:
+
+### 1. Chain-of-Thought Prompting vs. Autonomous Agent Loop
+- **Decision**: Used a sequential prompt-stuffing chain (Search -> Context -> LLM Generation) rather than a fully autonomous ReAct agent loop.
+- **Why**: ReAct agents can loop indefinitely, hallucinate search queries, consume high numbers of API tokens, and take upwards of a minute to complete. A deterministic search-then-generate chain is highly reliable, consistently fast (< 3 seconds on Groq), and returns exactly the structured JSON schema required.
+
+### 2. Multi-Query Parallelized Search vs. Single Search Query
+- **Decision**: Structured three separate search queries (Financials, News, Market position) executed in parallel using `Promise.all`.
+- **Why**: A single query like "Tesla overview 2025" often misses critical details. By splitting the queries, we ensure rich coverage of financial health, competitor comparisons, and latest press releases, while keeping search execution time minimal.
+
+### 3. Client-Side State with LocalStorage vs. Remote Database
+- **Decision**: Stored search history entirely in client-side LocalStorage.
+- **Why**: Keeping the backend completely stateless simplifies local deployment and reduces architecture complexity for review, while still offering users persistent search history, recent results, and light/dark theme settings.
+
+---
+
+## 📈 Example Runs
+
+Here are raw samples of the structured outputs returned by the AI Investment Agent for different company inputs:
+
+### Run 1: Tesla (INVEST)
+```json
+{
+  "company": "Tesla",
+  "recommendation": "INVEST",
+  "overallScore": 82,
+  "confidence": 90,
+  "risk": "Medium",
+  "financialHealth": 85,
+  "growth": 80,
+  "marketPosition": 70,
+  "innovation": 95,
+  "summary": "Tesla is a leading electric vehicle manufacturer with a strong brand and innovative products, but faces increasing competition in the market.",
+  "pros": [
+    "Strong brand and market position",
+    "Innovative products and technology",
+    "Growing demand for electric vehicles",
+    "Vertical integration in the supply chain"
+  ],
+  "cons": [
+    "Increasing competition in the market",
+    "Delays in launching and manufacturing new products",
+    "Dependence on government subsidies"
+  ],
+  "news": [
+    "Tesla plans to start production of a new mass market electric vehicle in mid-2025",
+    "Tesla's U.S. market share dropped to a near eight-year low in August"
+  ],
+  "explanation": "Tesla's strong brand, technological leadership in batteries and software, and high-quality charging network make it a compelling investment. While competitive pressures are rising from legacy automakers and Chinese brands, its market position remains highly resilient.",
+  "beginnerExplanation": "Think of Tesla as the biggest kid on the block making electric cars. Lots of people want their cars, but now other kids are starting to build electric cars too. Tesla is still the leader because they are super smart with technology, but they have to work hard to stay ahead."
+}
+```
+
+---
+
+## ⏳ What We Would Improve with More Time
+
+If we had more time, we would implement the following production-grade enhancements:
+
+1. **Iterative Search Refinement (LangGraph)**: Re-architect the backend using **LangGraph** to construct a stateful graph. If the initial Tavily search returns low-confidence or sparse financial numbers, the agent would enter a loop to execute follow-up queries until a set threshold is met.
+2. **Integration with Financial APIs**: Integrate APIs like **Yahoo Finance** or **Alpha Vantage** to supplement web search text with exact, real-time numeric indicators (P/E ratio, Debt-to-Equity, quarterly EPS).
+3. **Multi-Agent Debates**: Spawn two concurrent LLM agents: a "Bull Analyst" and a "Bear Analyst." The agents would debate the merits of the company, and a third "Synthesizer Agent" would weigh their arguments to make the final recommendation.
+4. **Caching Layer**: Integrate a Redis cache to store reports for popular companies (e.g., Apple, Microsoft) for 24 hours to reduce API billing costs and provide instant responses.
+
+---
+
+## 💬 LLM Chat Session Transcript/Logs (BONUS)
+
+Per the assignment guidelines, the full, interactive chat transcript detailing the collaborative build process with the AI is attached.
+You can find the logs at the root of the project:
+📄 **[chat_transcript.md](file:///c:/Users/Hansh Raj/OneDrive/Desktop/Ai Investment/chat_transcript.md)**
+
+---
+
+## 🛠️ Tech Stack & Details
 
 ### Frontend
-| Technology | Purpose |
-|---|---|
-| **React 19** | UI framework |
-| **Vite** | Build tool and dev server |
-| **Tailwind CSS 3** | Utility-first styling |
-| **Framer Motion** | Animations and transitions |
-| **React Router v7** | Client-side routing |
-| **Recharts** | Data visualization (charts) |
-| **React Icons** | Icon library |
-| **Axios** | HTTP client |
-| **jsPDF** | PDF report generation |
+- **React 19 & Vite** (Build system)
+- **Tailwind CSS 3** (Theme configurations & utility layout)
+- **Framer Motion** (Spring-physics micro-interactions & multi-step loader animations)
+- **Recharts** (Visualizing performance radar & bar chart distributions)
+- **jsPDF** (Client-side vector PDF report layout generation)
 
 ### Backend
-| Technology | Purpose |
-|---|---|
-| **Node.js** | Runtime environment |
-| **Express** | Web framework |
-| **LangChain.js** | AI/LLM orchestration |
-| **Groq API** | Ultra-fast LLM inference (Llama 3 70B) |
-| **Tavily Search** | Real-time web search |
-| **express-rate-limit** | API rate limiting |
-
----
-
-## 📁 Project Structure
-
-```
-investiq-ai/
-├── .env.example              # Environment variable template
-├── .gitignore
-├── README.md
-│
-├── server/                   # Backend
-│   ├── package.json
-│   ├── index.js              # Express server entry point
-│   ├── routes/
-│   │   └── analyzeRoutes.js  # API route definitions
-│   ├── controllers/
-│   │   └── analyzeController.js  # Request handling logic
-│   ├── services/
-│   │   ├── analysisService.js    # Orchestrates the analysis pipeline
-│   │   └── searchService.js      # Tavily search integration
-│   ├── chains/
-│   │   └── investmentChain.js    # LangChain + Groq LLM chain
-│   ├── prompts/
-│   │   └── investmentPrompt.js   # System prompt template
-│   ├── middleware/
-│   │   ├── errorHandler.js       # Global error handling
-│   │   └── rateLimiter.js        # Rate limiting (10 req/min)
-│   └── utils/
-│       └── validator.js          # Input/output validation
-│
-└── client/                   # Frontend
-    ├── package.json
-    ├── index.html
-    ├── vite.config.js
-    ├── tailwind.config.js
-    ├── postcss.config.js
-    └── src/
-        ├── main.jsx              # React entry point
-        ├── App.jsx               # Root component + routing
-        ├── index.css             # Global styles + Tailwind
-        ├── context/
-        │   └── ThemeContext.jsx   # Dark/light mode provider
-        ├── hooks/
-        │   ├── useAnalysis.js    # Analysis API state management
-        │   ├── useSearchHistory.js # localStorage search history
-        │   └── useTheme.js       # Theme context hook
-        ├── services/
-        │   └── api.js            # Axios API client
-        ├── utils/
-        │   ├── formatters.js     # Display formatting helpers
-        │   └── pdfGenerator.js   # PDF report generation
-        ├── pages/
-        │   ├── LandingPage.jsx   # Marketing landing page
-        │   └── AnalyzePage.jsx   # Main analysis page
-        └── components/
-            ├── Navbar.jsx            # Glass navigation bar
-            ├── Footer.jsx            # Page footer
-            ├── ThemeToggle.jsx       # Dark/light switch
-            ├── AnimatedCounter.jsx   # Number animation
-            ├── ErrorState.jsx        # Error display + retry
-            ├── HeroSection.jsx       # Landing hero
-            ├── FeatureCards.jsx      # Feature grid
-            ├── HowItWorks.jsx        # Timeline steps
-            ├── DashboardPreview.jsx  # Mock dashboard
-            ├── SearchBar.jsx         # Company input
-            ├── LoadingExperience.jsx # Loading animation
-            ├── SearchHistory.jsx     # History sidebar
-            ├── AnalysisDashboard.jsx # Dashboard container
-            ├── RecommendationCard.jsx # INVEST/PASS card
-            ├── ScoreCard.jsx         # Overall score gauge
-            ├── RiskMeter.jsx         # Risk level indicator
-            ├── ConfidenceMeter.jsx   # Confidence gauge
-            ├── CompanySummary.jsx    # Company overview
-            ├── ProsCons.jsx          # Pros & cons list
-            ├── NewsTimeline.jsx      # News events
-            ├── ExplanationCard.jsx   # AI reasoning
-            ├── ScoreCharts.jsx       # Recharts visualizations
-            └── ReportActions.jsx     # Copy/PDF/Share
-```
-
----
-
-## 🚀 Installation & Setup
-
-### Prerequisites
-- **Node.js** v18 or higher
-- **npm** v9 or higher
-
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd investiq-ai
-```
-
-### 2. Set Up Environment Variables
-```bash
-cp .env.example server/.env
-```
-
-Edit `server/.env` and add your API keys:
-```
-GROQ_API_KEY=your_groq_api_key_here
-TAVILY_API_KEY=your_tavily_api_key_here
-PORT=5000
-```
-
-**Where to get API keys:**
-- **Groq**: Sign up at [console.groq.com](https://console.groq.com) (free tier available)
-- **Tavily**: Sign up at [tavily.com](https://tavily.com) (free tier: 1000 searches/month)
-
-### 3. Install Dependencies
-```bash
-# Install backend dependencies
-cd server
-npm install
-
-# Install frontend dependencies
-cd ../client
-npm install
-```
-
-### 4. Run the Application
-Open two terminal windows:
-
-**Terminal 1 — Backend:**
-```bash
-cd server
-npm run dev
-```
-
-**Terminal 2 — Frontend:**
-```bash
-cd client
-npm run dev
-```
-
-The app will be available at:
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:5000
-
----
-
-## 🧠 How LangChain Works in This Project
-
-**LangChain** is a framework for building applications with LLMs. In InvestIQ AI, we use a simple chain:
-
-```
-Prompt Template → ChatGroq Model → JSON Output
-```
-
-### The Flow:
-1. **Prompt Template** (`server/prompts/investmentPrompt.js`): Defines the system prompt that instructs the AI to act as a Senior Investment Analyst and return structured JSON.
-
-2. **ChatGroq Model** (`server/chains/investmentChain.js`): Uses LangChain's `ChatGroq` class to send messages to Groq's API, which runs Llama 3 70B at ultra-fast speeds.
-
-3. **Messages**: LangChain uses a message-based format:
-   - `SystemMessage` — The analyst persona and JSON schema
-   - `HumanMessage` — The company name + search results
-
-4. **Output Parsing**: The raw LLM text is parsed into JSON, with fallback handling for markdown code blocks.
-
-### Why LangChain Instead of Direct API Calls?
-- **Abstraction**: Easy to swap Groq for OpenAI, Anthropic, etc.
-- **Message formatting**: Handles chat message types automatically
-- **Community tools**: Tavily search integration comes built-in
-- **Industry standard**: Widely used in production AI applications
-
----
-
-## ⚡ How Groq Works
-
-**Groq** provides ultra-fast LLM inference using custom hardware (LPUs — Language Processing Units).
-
-- **Model Used**: `llama-3.3-70b-versatile` (Meta's Llama 3 70B parameter model)
-- **Speed**: Groq can generate ~500 tokens/second (vs ~50 for typical GPU providers)
-- **Temperature**: Set to 0.3 for focused, consistent outputs
-- **Max Tokens**: 4096 (enough for our detailed JSON response)
-
-### Why Groq?
-1. **Free tier** available for development
-2. **Extremely fast** inference (great for user experience)
-3. **Supports Llama 3** which is excellent for structured output tasks
-4. **Simple API** that works great with LangChain
-
----
-
-## 📡 API Documentation
-
-### `POST /api/analyze`
-
-Analyzes a company for investment potential.
-
-**Request:**
-```json
-{
-  "company": "Apple"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "company": "Apple",
-    "recommendation": "INVEST",
-    "overallScore": 89,
-    "confidence": 87,
-    "risk": "Low",
-    "financialHealth": 92,
-    "growth": 78,
-    "marketPosition": 95,
-    "innovation": 88,
-    "summary": "Apple Inc. is a...",
-    "pros": ["Strong brand loyalty", "..."],
-    "cons": ["High product prices", "..."],
-    "news": ["Apple announced...", "..."],
-    "explanation": "Apple represents a...",
-    "beginnerExplanation": "Imagine Apple as..."
-  },
-  "timestamp": "2025-01-15T10:30:00.000Z"
-}
-```
-
-### `GET /api/health`
-
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "message": "InvestIQ AI server is running"
-}
-```
-
----
-
-## ✨ Features
-
-| # | Feature | Description |
-|---|---------|-------------|
-| 1 | AI Analysis | LLM-powered company analysis with structured output |
-| 2 | Real-Time Search | Tavily API searches for latest company data |
-| 3 | Investment Scoring | Multi-dimensional 0-100 scoring system |
-| 4 | Risk Detection | Low/Medium/High risk classification |
-| 5 | Confidence Score | Data quality-based confidence rating |
-| 6 | Explain Like I'm 15 | Toggle between expert and beginner explanations |
-| 7 | Interactive Charts | Radar and bar charts via Recharts |
-| 8 | Copy Report | One-click formatted report to clipboard |
-| 9 | Download PDF | Professional PDF report via jsPDF |
-| 10 | Share Report | Web Share API with clipboard fallback |
-| 11 | Search History | localStorage-persisted recent searches |
-| 12 | Dark/Light Mode | Theme toggle with persistence |
-| 13 | Animated Counters | Smooth number counting animations |
-| 14 | Loading Experience | 5-step progress animation while AI works |
-| 15 | Responsive Design | Mobile-first, works on all screen sizes |
-
----
-
-## 🚀 Deployment
-
-### Frontend (Vercel)
-1. Push to GitHub
-2. Import project in Vercel
-3. Set root directory to `client`
-4. Build command: `npm run build`
-5. Output directory: `dist`
-
-### Backend (Render)
-1. Push to GitHub
-2. Create a new Web Service in Render
-3. Set root directory to `server`
-4. Build command: `npm install`
-5. Start command: `npm start`
-6. Add environment variables (`GROQ_API_KEY`, `TAVILY_API_KEY`)
-
-> **Note**: Update the API base URL in `client/src/services/api.js` to your Render URL.
-
----
-
-## 🔮 Future Improvements
-
-- [ ] Compare multiple companies side-by-side
-- [ ] Historical analysis tracking with charts over time
-- [ ] User authentication for saved portfolios
-- [ ] WebSocket for real-time streaming analysis
-- [ ] More LLM providers (OpenAI, Anthropic)
-- [ ] Technical analysis with stock price charts
-- [ ] Sector-based analysis and industry comparison
-- [ ] Email report delivery
+- **Node.js & Express** (Server framework)
+- **LangChain.js** (Standard abstraction for prompts, LLM invocations)
+- **Groq API** (`llama-3.3-70b-versatile` running at 500+ tokens/sec)
+- **Tavily Search API** (Targeted developer web search engine)
 
 ---
 
 ## ⚠️ Disclaimer
 
 This project is for **educational purposes only**. It should not be used as actual financial advice. Always consult with qualified financial professionals before making investment decisions.
-
----
-
-## 📄 License
-
-MIT License — feel free to use this project for learning and portfolio purposes.
 
 ---
 
