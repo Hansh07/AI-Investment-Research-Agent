@@ -14,7 +14,7 @@ import { useTheme } from '../hooks/useTheme';
 export default function StockQuote({ stockData }) {
   const { theme } = useTheme();
 
-  if (!stockData) return null;
+  if (!stockData || stockData.error || !stockData.price) return null;
 
   const isPositive = stockData.change >= 0;
 
