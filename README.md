@@ -64,42 +64,47 @@ Edit `server/.env` and add your API keys:
 ```
 GROQ_API_KEY=your_groq_api_key_here
 TAVILY_API_KEY=your_tavily_api_key_here
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
 PORT=5000
 ```
 
 **Where to get API keys:**
 - **Groq**: Sign up at [console.groq.com](https://console.groq.com) (free tier available)
 - **Tavily**: Sign up at [tavily.com](https://tavily.com) (free tier: 1000 searches/month)
+- **Alpha Vantage**: Get a free API key at [alphavantage.co](https://www.alphavantage.co/support/#api-key) (free tier: 25 requests/day)
 
 ### 3. Install Dependencies
 ```bash
+# Install root concurrency dependencies
+npm install
+
 # Install backend dependencies
-cd server
-npm install --legacy-peer-deps
+cd server && npm install --legacy-peer-deps
 
 # Install frontend dependencies
-cd ../client
-npm install
+cd ../client && npm install
 ```
 
 ### 4. Run the Application
-Open two terminal windows:
-
-**Terminal 1 — Backend:**
+You can now start both the frontend Vite development server and backend Express server concurrently with a single command from the root directory:
 ```bash
-cd server
-npm run dev
-```
-
-**Terminal 2 — Frontend:**
-```bash
-cd client
 npm run dev
 ```
 
 The app will be available at:
 - **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:5000
+- **Backend API**: http://localhost:5000 (proxied through the client on port 5173 to prevent CORS blocks)
+
+---
+
+## ⚡ Deployed & Ready: Verifying Real-Time Stock Data
+
+We added real-time financial fundamentals from **Alpha Vantage** directly alongside the AI research agent:
+* **Interactive Stock Quote Card**: Displays live stock prices, daily change %, Market Cap, P/E Ratio, EPS, Volume, Beta, and Dividend Yield.
+* **Auto Ticker Disambiguation**: Uses Alpha Vantage `SYMBOL_SEARCH` to resolve search shorthand (e.g. "TCS" correctly pulls the Indian ticker `TCS.BSE` instead of the US company `TCS` - The Container Store).
+* **Multi-Currency UI**: Automatic detection of currency symbols (e.g., `₹` for Indian stocks, `$` for US stocks).
+* **Robust JSON Auto-Repair**: Intercepts and corrects common LLM output formatting errors (unescaped quotes, trailing commas) with automatic retry functionality.
+* **Smart Caching Layer**: Uses an in-memory caching mechanism (10-minute TTL) to store resolved ticker metrics, preventing rate-limiting on the free tier.
 
 ---
 
@@ -220,9 +225,33 @@ Here are raw samples of the structured outputs returned by the AI Investment Age
 If we had more time, we would implement the following production-grade enhancements:
 
 1. **Iterative Search Refinement (LangGraph)**: Re-architect the backend using **LangGraph** to construct a stateful graph. If the initial Tavily search returns low-confidence or sparse financial numbers, the agent would enter a loop to execute follow-up queries until a set threshold is met.
-2. **Integration with Financial APIs**: Integrate APIs like **Yahoo Finance** or **Alpha Vantage** to supplement web search text with exact, real-time numeric indicators (P/E ratio, Debt-to-Equity, quarterly EPS).
-3. **Multi-Agent Debates**: Spawn two concurrent LLM agents: a "Bull Analyst" and a "Bear Analyst." The agents would debate the merits of the company, and a third "Synthesizer Agent" would weigh their arguments to make the final recommendation.
-4. **Caching Layer**: Integrate a Redis cache to store reports for popular companies (e.g., Apple, Microsoft) for 24 hours to reduce API billing costs and provide instant responses.
+2. **Multi-Agent Debates**: Spawn two concurrent LLM agents: a "Bull Analyst" and a "Bear Analyst." The agents would debate the merits of the company, and a third "Synthesizer Agent" would weigh their arguments to make the final recommendation.
+3. **Advanced Database Layer**: Transition from client-side LocalStorage to a persistent database (PostgreSQL/Prisma) to enable social elements, like trending analysis score sheets or user watchlists.
+
+---
+
+## 🌐 Deployment Guide (Render + Vercel)
+
+The codebase is fully environment-aware and optimized for direct cloud deployment.
+
+### 1. Deploy the Backend to Render (or Heroku/Railway)
+1. Sign up on [Render.com](https://render.com) and create a new **Web Service**.
+2. Connect your GitHub repository.
+3. Set the **Root Directory** to `server`.
+4. Configure the following environment variables:
+   * `GROQ_API_KEY`: *[Your Groq key]*
+   * `TAVILY_API_KEY`: *[Your Tavily key]*
+   * `ALPHA_VANTAGE_API_KEY`: *[Your Alpha Vantage key]*
+   * `CLIENT_URL`: `https://your-frontend-app.vercel.app` *(Optional: restricts CORS to your frontend URL)*
+5. Render will automatically install dependencies and start the app using `npm start`.
+
+### 2. Deploy the Frontend to Vercel
+1. Sign up on [Vercel.com](https://vercel.com) and select **Add New Project**.
+2. Connect your GitHub repository.
+3. Set the **Root Directory** to `client`.
+4. Configure the following environment variable in the Vercel dashboard:
+   * `VITE_API_URL`: `https://your-backend-service.onrender.com/api` *(Your Render backend API URL)*
+5. Click **Deploy**. Vercel will automatically build the static Vite application.
 
 ---
 
