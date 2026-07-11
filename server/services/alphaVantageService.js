@@ -26,7 +26,7 @@ export async function fetchStockData(ticker, companyName = '') {
 
   if (!apiKey) {
     console.warn('⚠️  ALPHA_VANTAGE_API_KEY not set, skipping stock data fetch.');
-    return null;
+    return { error: 'ALPHA_VANTAGE_API_KEY not set in process.env' };
   }
 
   // Clean the ticker (remove exchange prefix if present, e.g. "NASDAQ:AAPL" → "AAPL")
@@ -43,25 +43,26 @@ export async function fetchStockData(ticker, companyName = '') {
 
   try {
     // Step 1: Use SYMBOL_SEARCH to find the best ticker match
-    // This resolves "TCS" → "TCS.BSE" for Tata Consultancy Services
     const searchQuery = companyName || cleanTicker;
     const searchRes = await fetch(`https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(searchQuery)}&apikey=${apiKey}`);
     const searchData = await searchRes.json();
 
     if (searchData['Note'] || searchData['Information']) {
-      console.warn(`⚠️  Alpha Vantage rate limit on search: ${searchData['Note'] || searchData['Information']}`);
-      return null;
+      const msg = searchData['Note'] || searchData['Information'];
+      console.warn(`⚠️  Alpha Vantage rate limit on search: ${msg}`);
+      return { error: `Search API rate limited: ${msg}`, raw: searchData };
     }
 
     const matches = searchData['bestMatches'] || [];
     if (matches.length > 0) {
-      // Find the best match — prefer exact ticker match, otherwise use the first result
       const exactMatch = matches.find(m => m['1. symbol'] === cleanTicker);
       const bestMatch = exactMatch || matches[0];
       const resolvedTicker = bestMatch['1. symbol'];
       const matchName = bestMatch['2. name'];
       console.log(`🔍 Symbol search: "${searchQuery}" → ${resolvedTicker} (${matchName})`);
       cleanTicker = resolvedTicker;
+    } else {
+      console.warn(`⚠️  No symbol search matches for keywords "${searchQuery}".`);
     }
 
     // Wait 1.5s between API calls for free-tier rate limits
@@ -72,14 +73,15 @@ export async function fetchStockData(ticker, companyName = '') {
     const quoteData = await quoteRes.json();
 
     if (quoteData['Note'] || quoteData['Information']) {
-      console.warn(`⚠️  Alpha Vantage rate limit hit: ${quoteData['Note'] || quoteData['Information']}`);
-      return null;
+      const msg = quoteData['Note'] || quoteData['Information'];
+      console.warn(`⚠️  Alpha Vantage rate limit hit on quote: ${msg}`);
+      return { error: `Quote API rate limited: ${msg}`, raw: quoteData };
     }
 
     const quote = quoteData['Global Quote'];
     if (!quote || Object.keys(quote).length === 0) {
-      console.warn(`⚠️  No stock quote found for "${cleanTicker}".`);
-      return null;
+      console.warn(`⚠️  No stock quote found for "${cleanTicker}". Raw response:`, quoteData);
+      return { error: `No stock quote found for ${cleanTicker}`, raw: quoteData };
     }
 
     // Wait 1.5s before the third call
@@ -125,7 +127,7 @@ export async function fetchStockData(ticker, companyName = '') {
     return stockData;
   } catch (error) {
     console.warn(`⚠️  Alpha Vantage request failed: ${error.message}`);
-    return null;
+    return { error: `Request failed: ${error.message}` };
   }
 }
 
