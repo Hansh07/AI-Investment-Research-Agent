@@ -1,0 +1,8 @@
+{
+  "name": "ai-investment-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx concurrently --kill-others --names \"client,server\" --prefix-colors \"cyan,magenta\" \"npm run dev --prefix client\" \"npm run dev --prefix server\""
+  }
+}

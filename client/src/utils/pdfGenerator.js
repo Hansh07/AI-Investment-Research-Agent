@@ -89,8 +89,9 @@ export function generatePDFReport(data) {
   doc.setFont(undefined, 'normal');
   doc.setTextColor(60, 60, 60);
   data.pros.forEach((pro) => {
-    doc.text(`✓  ${pro}`, 25, y);
-    y += 6;
+    const proLines = doc.splitTextToSize(`+  ${pro}`, pageWidth - 50);
+    doc.text(proLines, 25, y);
+    y += proLines.length * 5 + 1;
   });
   y += 5;
 
@@ -105,8 +106,9 @@ export function generatePDFReport(data) {
   doc.setFont(undefined, 'normal');
   doc.setTextColor(60, 60, 60);
   data.cons.forEach((con) => {
-    doc.text(`✗  ${con}`, 25, y);
-    y += 6;
+    const conLines = doc.splitTextToSize(`-  ${con}`, pageWidth - 50);
+    doc.text(conLines, 25, y);
+    y += conLines.length * 5 + 1;
   });
   y += 5;
 
