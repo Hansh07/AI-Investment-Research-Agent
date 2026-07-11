@@ -99,5 +99,10 @@ export function validateAnalysisOutput(data) {
   const riskMap = { LOW: 'Low', MEDIUM: 'Medium', HIGH: 'High' };
   validated.risk = riskMap[String(validated.risk).toUpperCase()] || 'Medium';
 
+  // Pass through stockData if present (added by analysisService)
+  if (data.stockData !== undefined) {
+    validated.stockData = data.stockData;
+  }
+
   return validated;
 }

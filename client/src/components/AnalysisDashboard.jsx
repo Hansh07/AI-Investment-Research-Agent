@@ -17,6 +17,7 @@ import ExplanationCard from './ExplanationCard';
 import ScoreCharts from './ScoreCharts';
 import ReportActions from './ReportActions';
 import TradingViewWidget from './TradingViewWidget';
+import StockQuote from './StockQuote';
 import { useTheme } from '../hooks/useTheme';
 
 export default function AnalysisDashboard({ data }) {
@@ -63,6 +64,13 @@ export default function AnalysisDashboard({ data }) {
         <RiskMeter risk={data.risk} />
         <ConfidenceMeter confidence={data.confidence} />
       </div>
+
+      {/* Stock Quote — Real-Time Market Data */}
+      {data.stockData && (
+        <div className="mb-6">
+          <StockQuote stockData={data.stockData} />
+        </div>
+      )}
 
       {/* Middle Row: Summary + Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">

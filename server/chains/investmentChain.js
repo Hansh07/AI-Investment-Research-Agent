@@ -60,12 +60,28 @@ export async function runAnalysisChain(company, searchResults) {
   const rawText = response.content;
   console.log(`📝 Received AI response (${rawText.length} chars)`);
 
-  // Parse the JSON from the response
-  // Sometimes LLMs wrap JSON in markdown code blocks, so we handle that
+  // Parse the JSON from the response (with repair + retry)
   const jsonString = extractJSON(rawText);
-  const parsed = JSON.parse(jsonString);
-
-  return parsed;
+  try {
+    return JSON.parse(jsonString);
+  } catch (firstError) {
+    console.warn(`⚠️  JSON parse failed, attempting repair...`);
+    try {
+      const repaired = repairJSON(jsonString);
+      return JSON.parse(repaired);
+    } catch {
+      // Retry once with a fresh LLM call
+      console.warn(`⚠️  Repair failed. Retrying LLM call...`);
+      const retryResponse = await model.invoke(messages);
+      const retryText = retryResponse.content;
+      const retryJson = extractJSON(retryText);
+      try {
+        return JSON.parse(retryJson);
+      } catch {
+        return JSON.parse(repairJSON(retryJson));
+      }
+    }
+  }
 }
 
 /**
@@ -88,3 +104,23 @@ function extractJSON(text) {
   // Return as-is and let JSON.parse handle the error
   return text.trim();
 }
+
+/**
+ * Attempts to repair common JSON issues from LLM output:
+ * - Trailing commas before } or ]
+ * - Unescaped newlines inside strings
+ * - Smart quotes
+ */
+function repairJSON(text) {
+  let fixed = text;
+  // Replace smart quotes with regular quotes
+  fixed = fixed.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
+  // Remove trailing commas before } or ]
+  fixed = fixed.replace(/,\s*([\]}])/g, '$1');
+  // Fix unescaped newlines inside string values
+  fixed = fixed.replace(/"([^"]*?)"/g, (match) => {
+    return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+  });
+  return fixed;
+}
+
