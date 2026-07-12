@@ -34,8 +34,30 @@ export async function analyzeCompany(company) {
   const aiCompanyName = rawAnalysis.company || company;
   const stockData = await fetchStockData(ticker, aiCompanyName).catch(() => null);
 
-  if (stockData) {
-    console.log(`📈 Alpha Vantage data attached for ${stockData.ticker}`);
+  if (stockData && !stockData.error) {
+    console.log(`📈 Stock data fetched for ${stockData.ticker}`);
+    
+    const parseOrNull = (val) => {
+      if (val === undefined || val === null || String(val).toUpperCase() === 'N/A') return null;
+      const parsed = parseFloat(String(val).replace(/[^0-9.-]/g, ''));
+      return isNaN(parsed) ? null : parsed;
+    };
+
+    // Enrich the quote data with AI-extracted fundamentals if missing (common for Yahoo Finance fallback/international stocks)
+    stockData.marketCap = stockData.marketCap || rawAnalysis.marketCap || null;
+    stockData.peRatio = stockData.peRatio || parseOrNull(rawAnalysis.peRatio);
+    stockData.eps = stockData.eps || parseOrNull(rawAnalysis.eps);
+    stockData.beta = stockData.beta || parseOrNull(rawAnalysis.beta);
+    
+    if (stockData.dividendYield === null && rawAnalysis.dividendYield) {
+      const parsedYield = parseOrNull(rawAnalysis.dividendYield);
+      stockData.dividendYield = parsedYield !== null ? parsedYield / 100 : null;
+    }
+    
+    stockData.sector = stockData.sector || rawAnalysis.sector || null;
+    stockData.industry = stockData.industry || rawAnalysis.industry || null;
+    stockData.week52High = stockData.week52High || parseOrNull(rawAnalysis.week52High);
+    stockData.week52Low = stockData.week52Low || parseOrNull(rawAnalysis.week52Low);
   }
 
   // Step 4: Validate and normalize the AI output

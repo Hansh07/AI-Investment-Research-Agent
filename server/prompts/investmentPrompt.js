@@ -53,7 +53,16 @@ REQUIRED JSON FORMAT:
   "cons": ["con1", "con2", "con3"],
   "news": ["recent event 1", "recent event 2", "recent event 3"],
   "explanation": "Detailed 3-5 sentence explanation of the recommendation",
-  "beginnerExplanation": "Simple 2-3 sentence explanation a 15-year-old would understand"
+  "beginnerExplanation": "Simple 2-3 sentence explanation a 15-year-old would understand",
+  "marketCap": "Estimated market capitalization (e.g. $3.4T, $500B, or N/A)",
+  "peRatio": "Estimated trailing PE ratio (e.g. 31.2, or N/A)",
+  "eps": "Estimated EPS (e.g. 6.50, or N/A)",
+  "beta": "Estimated Beta (e.g. 1.25, or N/A)",
+  "dividendYield": "Estimated Dividend Yield (e.g. 0.45%, 1.2%, or N/A)",
+  "sector": "Estimated Sector (e.g. Technology, Finance, or N/A)",
+  "industry": "Estimated Industry (e.g. Consumer Electronics, or N/A)",
+  "week52High": "Estimated 52-week high price (e.g. 230.50, or N/A)",
+  "week52Low": "Estimated 52-week low price (e.g. 165.00, or N/A)"
 }`;
 
   const userPrompt = `Analyze the following company for investment potential: "${company}"
