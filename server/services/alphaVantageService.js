@@ -42,63 +42,24 @@ export async function fetchStockData(ticker, companyName = '') {
   console.log(`📈 Fetching stock data for "${cleanTicker}" (${companyName}) from Alpha Vantage...`);
 
   try {
-    // Step 1: Use SYMBOL_SEARCH to find the best ticker match
-    const searchQuery = companyName || cleanTicker;
-    const searchRes = await fetch(`https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(searchQuery)}&apikey=${apiKey}`);
-    const searchData = await searchRes.json();
-
-    if (searchData['Note'] || searchData['Information']) {
-      const msg = searchData['Note'] || searchData['Information'];
-      console.warn(`⚠️  Alpha Vantage rate limit on search: ${msg}`);
-      return { error: `Search API rate limited: ${msg}`, raw: searchData };
-    }
-
-    const matches = searchData['bestMatches'] || [];
-    if (matches.length > 0) {
-      const exactMatch = matches.find(m => m['1. symbol'] === cleanTicker);
-      const bestMatch = exactMatch || matches[0];
-      const resolvedTicker = bestMatch['1. symbol'];
-      const matchName = bestMatch['2. name'];
-      console.log(`🔍 Symbol search: "${searchQuery}" → ${resolvedTicker} (${matchName})`);
-      cleanTicker = resolvedTicker;
-    } else {
-      console.warn(`⚠️  No symbol search matches for keywords "${searchQuery}".`);
-    }
-
-    // Wait 1.5s between API calls for free-tier rate limits
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Step 2: Fetch Global Quote
+    // Single API call: GLOBAL_QUOTE only (saves 2 API calls per analysis)
+    // This maximizes the free-tier limit (25 analyses/day instead of 8)
     const quoteRes = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(cleanTicker)}&apikey=${apiKey}`);
     const quoteData = await quoteRes.json();
 
     if (quoteData['Note'] || quoteData['Information']) {
       const msg = quoteData['Note'] || quoteData['Information'];
-      console.warn(`⚠️  Alpha Vantage rate limit hit on quote: ${msg}`);
-      return { error: `Quote API rate limited: ${msg}`, raw: quoteData };
+      console.warn(`⚠️  Alpha Vantage rate limit hit: ${msg}`);
+      return { error: `Rate limited: ${msg}`, raw: quoteData };
     }
 
     const quote = quoteData['Global Quote'];
     if (!quote || Object.keys(quote).length === 0) {
-      console.warn(`⚠️  No stock quote found for "${cleanTicker}". Raw response:`, quoteData);
+      console.warn(`⚠️  No stock quote found for "${cleanTicker}". Raw:`, quoteData);
       return { error: `No stock quote found for ${cleanTicker}`, raw: quoteData };
     }
 
-    // Wait 1.5s before the third call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Step 3: Fetch Company Overview
-    const overviewRes = await fetch(`https://www.alphavantage.co/query?function=OVERVIEW&symbol=${encodeURIComponent(cleanTicker)}&apikey=${apiKey}`);
-    const overviewData = await overviewRes.json();
-
-    if (overviewData['Note'] || overviewData['Information']) {
-      console.warn(`⚠️  Alpha Vantage Overview rate limited — will still use quote data.`);
-    }
-
-    const overviewKeys = Object.keys(overviewData).filter(k => k !== 'Note' && k !== 'Information');
-    console.log(`📋 Overview data fields: ${overviewKeys.length > 0 ? overviewKeys.slice(0, 5).join(', ') + '...' : 'none'}`);
-
-    // Build a clean, structured stock data object
+    // Build stock data from GLOBAL_QUOTE (no Overview call needed)
     const stockData = {
       ticker: cleanTicker,
       price: parseFloat(quote['05. price']) || null,
@@ -106,22 +67,25 @@ export async function fetchStockData(ticker, companyName = '') {
       changePercent: quote['10. change percent'] ? quote['10. change percent'].replace('%', '') : null,
       volume: parseInt(quote['06. volume']) || null,
       previousClose: parseFloat(quote['08. previous close']) || null,
+      high: parseFloat(quote['03. high']) || null,
+      low: parseFloat(quote['04. low']) || null,
+      open: parseFloat(quote['02. open']) || null,
 
-      // Company Overview fields
-      marketCap: overviewData['MarketCapitalization'] || null,
-      peRatio: parseFloat(overviewData['PERatio']) || null,
-      eps: parseFloat(overviewData['EPS']) || null,
-      week52High: parseFloat(overviewData['52WeekHigh']) || null,
-      week52Low: parseFloat(overviewData['52WeekLow']) || null,
-      sector: overviewData['Sector'] || null,
-      industry: overviewData['Industry'] || null,
-      description: overviewData['Description'] || null,
-      dividendYield: parseFloat(overviewData['DividendYield']) || null,
-      beta: parseFloat(overviewData['Beta']) || null,
+      // These fields require OVERVIEW endpoint (skipped to save API quota)
+      marketCap: null,
+      peRatio: null,
+      eps: null,
+      week52High: null,
+      week52Low: null,
+      sector: null,
+      industry: null,
+      description: null,
+      dividendYield: null,
+      beta: null,
     };
 
     console.log(`✅ Stock data fetched: ${cleanTicker} @ $${stockData.price} (${stockData.changePercent}%)`);
-    // Cache the result under both the original and resolved ticker
+    // Cache the result
     stockCache.set(cleanTicker, { data: stockData, timestamp: Date.now() });
     stockCache.set(`${ticker}_resolved`, { data: stockData, timestamp: Date.now() });
     return stockData;
