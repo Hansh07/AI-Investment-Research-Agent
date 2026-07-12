@@ -2,6 +2,8 @@
 
 > An AI-powered investment research platform that analyzes companies using real-time web search and Large Language Models, delivering professional investment recommendations with confidence scoring.
 
+⚡ **Live Demo Link**: [ai-investment-research-agent-lime.vercel.app](https://ai-investment-research-agent-lime.vercel.app/)
+
 ![InvestIQ AI](https://img.shields.io/badge/AI-Powered-blue?style=for-the-badge) ![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=node.js&logoColor=white) ![LangChain](https://img.shields.io/badge/LangChain-JS-green?style=for-the-badge)
 
 ---
