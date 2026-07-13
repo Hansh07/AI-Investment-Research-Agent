@@ -11,7 +11,8 @@
 ## 📋 Overview
 
 InvestIQ AI is a full-stack web application that takes a **company name** as input, researches the company using real-time web search, and uses an AI model to provide a structured investment analysis.
-<img width="1903" height="980" alt="image" src="https://github.com/user-attachments/assets/07aee211-b4d2-4807-b451-ee70947d6f87" />
+<img width="1901" height="920" alt="image" src="https://github.com/user-attachments/assets/6c2fd600-7499-4d33-8e33-55c7a3adb30a" />
+
 <img width="1917" height="917" alt="image" src="https://github.com/user-attachments/assets/cec5ce3f-e921-4bf8-9019-2dff1a39bd38" />
 
 
